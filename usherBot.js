@@ -1,7 +1,5 @@
 require('dotenv').config()
 
-require("http").createServer(async (req,res) => { res.statusCode = 200; res.write("ok"); res.end(); }).listen(3000, () => console.log("Now listening on port 3000"));
-
 const discord = require ('discord.js');
 
 var client = new discord.Client();
