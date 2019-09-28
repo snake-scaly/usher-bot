@@ -12,7 +12,7 @@ client.on ("ready", () => {
     client.user.setActivity ("Merry Madness");
 });
 
-const prefix = "!s ";
+const prefix = ".hey ";
 client.on ("message", (message) => {
 
     if (message.author.bot) return;
