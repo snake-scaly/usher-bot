@@ -1,0 +1,14 @@
+[Unit]
+Description=Role-assigning Discord bot for Merry Madness
+
+[Service]
+ExecStart=/usr/bin/node /var/www/usher-bot/usherBot.js
+Restart=always
+User=nobody
+Group=nogroup
+Environment=PATH=/usr/bin:/usr/local/bin
+Environment=NODE_ENV=production
+WorkingDirectory=/var/www/usher-bot
+
+[Install]
+WantedBy=multi-user.target
