@@ -1,6 +1,14 @@
-require('dotenv').config()
+require('dotenv').config();
 
 const discord = require ('discord.js');
+const fs = require('fs');
+const path = require('path');
+
+let smartPath = path.resolve(process.cwd(), 'confucius.txt')
+let smart = fs.readFileSync(smartPath).toString().split('\n');
+// Remove empty lines
+let empty = /^\s*$/;
+smart = smart.filter(function(s) { return !s.match(empty); });
 
 var client = new discord.Client();
 
@@ -21,6 +29,9 @@ client.on ("message", (message) => {
         message.reply ('Привет!');
     }
     
+    if (message.content.includes(prefix + 'скажи умное')) {
+        message.reply(smart[Math.floor(Math.random() * smart.length)]);
+    }
 });
 
 client.login (token);
