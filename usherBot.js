@@ -1,8 +1,9 @@
 require('dotenv').config();
 
-const discord = require ('discord.js');
+const discord = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const roleChooser = require('./roleChooser.js');
 
 // 'snowflake' NAME '=' NUMBER
 const snowflakeRegex = /\s*snowflake\s+([^\s=]+)\s*=\s*(\d*)/;
@@ -121,9 +122,9 @@ var client = new discord.Client();
 const token = process.env.BOT_TOKEN;
 
 client.on ("ready", () => {
-    console.log ("ready!");
-
     client.user.setActivity ("Merry Madness");
+    roleChooser.bootstrap(client);
+    console.log("ready!");
 });
 
 client.on ("message", (message) => {
@@ -146,9 +147,6 @@ client.on ("message", (message) => {
     }
 });
 
-client.login (token);
-
-
 client.on ("guildMemberAdd", member => {
 
     var role = member.guild.roles.find ("name", "Прохожие");
@@ -161,3 +159,9 @@ client.on ("guildMemberRemove", member => {
     member.guild.channels.get('409658506967384065').send('**' + member.user.username + '** покинул сервер')
     //
 });
+
+client.on('messageReactionAdd', roleChooser.reactionAdd);
+client.on('messageReactionRemove', roleChooser.reactionRemove);
+client.on('messageReactionRemoveAll', roleChooser.reactionRemoveAll);
+
+client.login(token);
