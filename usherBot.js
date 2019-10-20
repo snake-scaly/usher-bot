@@ -61,19 +61,23 @@ function readReplies(name, separator=undefined) {
     for (const l of lines) {
         var sf = parseSnowflake(l);
         if (sf) {
+            // A snowflake takes the whole line, there can't be anything else there.
             snowflakes[sf.name] = sf.value;
-        } else if (l == separator) {
-            if (reply) {
-                replies.push(reply);
-                reply = '';
+            continue;
+        }
+
+        if (separator) {
+            if (l == separator) {
+                if (reply) {
+                    replies.push(reply);
+                    reply = '';
+                }
+            } else {
+                if (reply) reply += '\n';
+                reply += fixMentions(l, snowflakes);
             }
-        } else {
-            if (reply) reply += '\n';
-            reply += fixMentions(l, snowflakes);
-            if (!separator) {
-                replies.push(reply);
-                reply = '';
-            }
+        } else if (l.trim()) {
+            replies.push(fixMentions(l, snowflakes));
         }
     }
 
