@@ -90,7 +90,7 @@ const notAWord = '(?:\\P{L}|^|$)';
 const greetSureRegex = XRegExp('^-эй,\\s+привет,\\s+бот', 'i');
 const guardSureRegex = XRegExp('^-эй,\\s+пушистик!', 'i');
 const smartSureRegex = XRegExp('^-эй,\\s+скажи\\s+умное', 'i');
-const confusedRegex = XRegExp('^-эй\\s', 'i');
+const confusedRegex = XRegExp(`^-эй${notAWord}`, 'i');
 
 const guardRegex = XRegExp(`${notAWord}(?:страж|полиц)`, 'i');
 const smartRegex = XRegExp(`${notAWord}ум(?:а|у|е|ом)?${notAWord}|${notAWord}(?:за)?умн|мысе?л`, 'i');
