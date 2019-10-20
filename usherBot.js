@@ -95,10 +95,11 @@ const confusedRegex = XRegExp(`^-эй${notAWord}`, 'i');
 const guardRegex = XRegExp(`${notAWord}(?:страж|полиц)`, 'i');
 const smartRegex = XRegExp(`${notAWord}ум(?:а|у|е|ом)?${notAWord}|${notAWord}(?:за)?умн|мысе?л`, 'i');
 const sheoRegex = XRegExp('сыр|шео', 'i');
+const jokeRegex = XRegExp('анекдот|штирлиц|шут', 'i');
 
 // Guess the message theme.
 // Returns an object with two values:
-//   'theme': one of 'greet', 'smart', 'guard', 'sheo', 'confused', undefined
+//   'theme': one of 'greet', 'smart', 'guard', 'sheo', 'confused', 'joke', undefined
 //   'certainty': a number from 0 to 1 specifying how certain the algorithm is that
 //     the user actually addressed the bot
 function guessTheme(msg) {
@@ -109,6 +110,7 @@ function guessTheme(msg) {
     if (guardRegex.test(msg)) return {theme:'guard', certainty:0.5};
     if (smartRegex.test(msg)) return {theme:'smart', certainty:0.5};
     if (sheoRegex.test(msg)) return {theme:'sheo', certainty:0.5};
+    if (jokeRegex.test(msg)) return {theme:'joke', certainty:0.5};
     if (confusedRegex.test(msg)) return {theme:'confused', certainty:1};
     return {certainty:0};
 }
@@ -129,6 +131,7 @@ const guard = readReplies('guard.txt');
 const smart = readReplies('confucius.txt');
 const sheo = readReplies('sheo.txt');
 const confused = readReplies('confused.txt');
+const joke = readReplies('schtirlitz.txt', '№');
 
 var client = new discord.Client();
 
@@ -157,6 +160,8 @@ client.on ("message", (message) => {
         message.channel.send(randomMessage(sheo));
     } else if (guess.theme == 'confused') {
         message.reply(randomMessage(confused));
+    } else if (guess.theme == 'joke') {
+        message.channel.send(randomMessage(joke));
     }
 });
 
