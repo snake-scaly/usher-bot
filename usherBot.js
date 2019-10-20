@@ -4,6 +4,7 @@ const discord = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const roleChooser = require('./roleChooser.js');
+const XRegExp = require('xregexp');
 
 // 'snowflake' NAME '=' NUMBER
 const snowflakeRegex = /\s*snowflake\s+([^\s=]+)\s*=\s*(\d*)/;
@@ -79,17 +80,16 @@ function readReplies(name, separator=undefined) {
     return replies;
 };
 
-const greetSureRegex = /^-эй,\s+привет,\s+бот/i;
-const guardSureRegex = /^-эй,\s+пушистик!/i;
-const smartSureRegex = /^-эй,\s+скажи\s+умное/i;
-const confusedRegex = /^-эй/i;
+const notAWord = '(?:\\P{L}|^|$)';
 
-// These are more complicated than expected because Javascript's word boundary \b only
-// works for ASCII. Have to replace that with start-of-word check (?:^|\s) and
-// end-of-word check (?:$|\s). These only work with spaces and line boundaries though.
-const guardRegex = /(?:^|\s)(?:страж|полиц)/i;
-const smartRegex = /(?:^|\s)(?:ум(?:а|у|е|ом)?(?:$|\s)|(за)?умн)|мысе?л/i;
-const sheoRegex = /сыр|шео/i;
+const greetSureRegex = XRegExp('^-эй,\\s+привет,\\s+бот', 'i');
+const guardSureRegex = XRegExp('^-эй,\\s+пушистик!', 'i');
+const smartSureRegex = XRegExp('^-эй,\\s+скажи\\s+умное', 'i');
+const confusedRegex = XRegExp('^-эй\\s', 'i');
+
+const guardRegex = XRegExp(`${notAWord}(?:страж|полиц)`, 'i');
+const smartRegex = XRegExp(`${notAWord}ум(?:а|у|е|ом)?${notAWord}|${notAWord}(?:за)?умн|мысе?л`, 'i');
+const sheoRegex = XRegExp('сыр|шео', 'i');
 
 // Guess the message theme.
 // Returns an object with two values:
