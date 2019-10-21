@@ -95,7 +95,7 @@ const confusedRegex = XRegExp(`^-эй${notAWord}`, 'i');
 const guardRegex = XRegExp(`${notAWord}(?:страж|полиц)`, 'i');
 const smartRegex = XRegExp(`${notAWord}ум(?:а|у|е|ом)?${notAWord}|${notAWord}(?:за)?умн|мысе?л`, 'i');
 const sheoRegex = XRegExp('сыр|шео', 'i');
-const jokeRegex = XRegExp('анекдот|штирлиц|шут', 'i');
+const jokeRegex = XRegExp(`анекдот|штирлиц|${notAWord}шут`, 'i');
 
 // Guess the message theme.
 // Returns an object with two values:
