@@ -6,6 +6,7 @@ const path = require('path');
 const roleChooser = require('./roleChooser.js');
 const XRegExp = require('xregexp');
 const {random} = require('./random.js');
+const {nonsense} = require('./nonsense.js');
 
 // 'snowflake' NAME '=' NUMBER
 const snowflakeRegex = /\s*snowflake\s+([^\s=]+)\s*=\s*(\d*)/;
@@ -90,6 +91,7 @@ const notAWord = '(?:\\P{L}|^|$)';
 const greetSureRegex = XRegExp('^-эй,\\s+привет,\\s+бот', 'i');
 const guardSureRegex = XRegExp('^-эй,\\s+пушистик!', 'i');
 const smartSureRegex = XRegExp('^-эй,\\s+скажи\\s+умное', 'i');
+const stupidSureRegex = XRegExp('^-эй\\P{L}.*(?:глуп|дур|ерунд|чушь|туп)', 'i');
 const confusedRegex = XRegExp(`^-эй${notAWord}`, 'i');
 
 const guardRegex = XRegExp(`${notAWord}(?:страж|полиц)`, 'i');
@@ -99,7 +101,7 @@ const jokeRegex = XRegExp(`анекдот|штирлиц|${notAWord}шут`, 'i'
 
 // Guess the message theme.
 // Returns an object with two values:
-//   'theme': one of 'greet', 'smart', 'guard', 'sheo', 'confused', 'joke', undefined
+//   'theme': one of 'greet', 'smart', 'guard', 'sheo', 'confused', 'joke', 'nonsense', undefined
 //   'certainty': a number from 0 to 1 specifying how certain the algorithm is that
 //     the user actually addressed the bot
 function guessTheme(msg) {
@@ -107,6 +109,7 @@ function guessTheme(msg) {
     if (greetSureRegex.test(msg)) return {theme:'greet', certainty:1};
     if (guardSureRegex.test(msg)) return {theme:'guard', certainty:1};
     if (smartSureRegex.test(msg)) return {theme:'smart', certainty:1};
+    if (stupidSureRegex.test(msg)) return {theme:'nonsense', certainty:1};
     if (guardRegex.test(msg)) return {theme:'guard', certainty:0.5};
     if (smartRegex.test(msg)) return {theme:'smart', certainty:0.5};
     if (sheoRegex.test(msg)) return {theme:'sheo', certainty:0.5};
@@ -124,6 +127,13 @@ const smart = readReplies('confucius.txt');
 const sheo = readReplies('sheo.txt');
 const confused = readReplies('confused.txt');
 const joke = readReplies('schtirlitz.txt', '№');
+
+const monday = (function() {
+    const filePath = path.resolve(process.cwd(), 'понедельник.txt');
+    return fs.readFileSync(filePath).toString().trim().replace(/\s+/g, ' ');
+})();
+
+const monday_words = monday.split(XRegExp('(?<=\\P{L})(?=\\p{L})|(?<=\\p{L})(?=\\P{L})'));
 
 var client = new discord.Client();
 
@@ -154,6 +164,12 @@ client.on ("message", (message) => {
         message.reply(randomMessage(confused));
     } else if (guess.theme == 'joke') {
         message.channel.send(randomMessage(joke));
+    } else if (guess.theme == 'nonsense') {
+        if (random() < 0.5) {
+            message.channel.send(nonsense(monday, 3, /^\./, 100, 200).join(''));
+        } else {
+            message.channel.send(nonsense(monday_words, 2, /^\./, 20, 60).join(''));
+        }
     }
 });
 
