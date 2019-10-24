@@ -117,30 +117,6 @@ function prefetchChooserMessages(messages) {
     return false;
 }
 
-function bootstrap(client) {
-    botClient = client;
-    for (const entry of bootstrapList) {
-        var guild = client.guilds.get(entry.guild);
-        if (!guild) {
-            console.error(`Guild not found: ${entry.guild}`);
-            return;
-        }
-
-        var channel = guild.channels.get(entry.channel);
-        if (!channel) {
-            console.error(`Channel ${entry.channel} not found in guild ${guild.name}`);
-            return;
-        }
-
-        populateRoles(guild);
-
-        channel.fetchMessages()
-            .then(messages => {
-                if (!prefetchChooserMessages(messages)) createRoleSelector(channel);
-            });
-    }
-}
-
 function reactionAdd(reaction, user) {
     if (user.bot) return;
     if (!isChooserMessage(reaction.message)) return;
@@ -188,9 +164,33 @@ function reactionRemoveAll(message) {
     createReactions(message);
 }
 
-module.exports = {
-    reactionAdd: reactionAdd,
-    reactionRemove: reactionRemove,
-    reactionRemoveAll: reactionRemoveAll,
-    bootstrap: bootstrap,
-};
+function bootstrap(client) {
+    botClient = client;
+
+    botClient.on('messageReactionAdd', reactionAdd);
+    botClient.on('messageReactionRemove', reactionRemove);
+    botClient.on('messageReactionRemoveAll', reactionRemoveAll);
+
+    for (const entry of bootstrapList) {
+        var guild = client.guilds.get(entry.guild);
+        if (!guild) {
+            console.error(`Guild not found: ${entry.guild}`);
+            return;
+        }
+
+        var channel = guild.channels.get(entry.channel);
+        if (!channel) {
+            console.error(`Channel ${entry.channel} not found in guild ${guild.name}`);
+            return;
+        }
+
+        populateRoles(guild);
+
+        channel.fetchMessages()
+            .then(messages => {
+                if (!prefetchChooserMessages(messages)) createRoleSelector(channel);
+            });
+    }
+}
+
+module.exports = {bootstrap: bootstrap};

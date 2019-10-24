@@ -178,8 +178,4 @@ client.on ("guildMemberRemove", member => {
     //
 });
 
-client.on('messageReactionAdd', roleChooser.reactionAdd);
-client.on('messageReactionRemove', roleChooser.reactionRemove);
-client.on('messageReactionRemoveAll', roleChooser.reactionRemoveAll);
-
 client.login(token);
