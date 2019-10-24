@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const roleChooser = require('./roleChooser.js');
 const XRegExp = require('xregexp');
-const crypto = require('crypto');
+const {random} = require('./random.js');
 
 // 'snowflake' NAME '=' NUMBER
 const snowflakeRegex = /\s*snowflake\s+([^\s=]+)\s*=\s*(\d*)/;
@@ -115,16 +115,8 @@ function guessTheme(msg) {
     return {certainty:0};
 }
 
-function cryptoRandom() {
-    var a, b, c;
-    [a, b, c] = crypto.randomBytes(3);
-    // No idea. Removing this intermediate variable seems to cause numbers to repeat. Rounding?
-    var r = (a + (b << 8) + (c << 16)) / (1 << 24);
-    return r;
-}
-
 function randomMessage(messages) {
-    return messages[Math.floor(cryptoRandom() * messages.length)];
+    return messages[Math.floor(random() * messages.length)];
 }
 
 const guard = readReplies('guard.txt');
