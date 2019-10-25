@@ -87,15 +87,15 @@ function readReplies(name, separator=undefined) {
 };
 
 const notAWord = '(?:\\P{L}|^|$)';
+const prefix = `^эй${notAWord}`;
 
-const greetSureRegex = XRegExp('^-эй,\\s+привет,\\s+бот', 'i');
-const guardSureRegex = XRegExp('^-эй,\\s+пушистик!', 'i');
-const smartSureRegex = XRegExp('^-эй,\\s+скажи\\s+умное', 'i');
-const stupidSureRegex = XRegExp('^-эй\\P{L}.*(?:глуп|дур|ерунд|чушь|туп)', 'i');
-const confusedRegex = XRegExp(`^-эй${notAWord}`, 'i');
+const greetSureRegex = XRegExp(`${prefix},\\s+привет,\\s+бот`, 'i');
+const guardSureRegex = XRegExp(`${prefix},\\s+пушистик!`, 'i');
+const smartSureRegex = XRegExp(`${prefix}.*(?:${notAWord}ум(?:а|у|е|ом)?${notAWord}|${notAWord}(?:за)?умн|мысе?л)`, 'i');
+const stupidSureRegex = XRegExp(`${prefix}.*(?:глуп|дур|ерунд|чушь|туп|бред|дуб|болван)`, 'i');
+const confusedRegex = XRegExp(prefix, 'i');
 
 const guardRegex = XRegExp(`${notAWord}(?:страж|полиц)`, 'i');
-const smartRegex = XRegExp(`${notAWord}ум(?:а|у|е|ом)?${notAWord}|${notAWord}(?:за)?умн|мысе?л`, 'i');
 const sheoRegex = XRegExp('сыр|шео', 'i');
 const jokeRegex = XRegExp(`анекдот|штирлиц|${notAWord}шут`, 'i');
 
@@ -108,10 +108,9 @@ function guessTheme(msg) {
     msg = msg.trim();
     if (greetSureRegex.test(msg)) return {theme:'greet', certainty:1};
     if (guardSureRegex.test(msg)) return {theme:'guard', certainty:1};
-    if (smartSureRegex.test(msg)) return {theme:'smart', certainty:1};
     if (stupidSureRegex.test(msg)) return {theme:'nonsense', certainty:1};
+    if (smartSureRegex.test(msg)) return {theme:'smart', certainty:1};
     if (guardRegex.test(msg)) return {theme:'guard', certainty:0.5};
-    if (smartRegex.test(msg)) return {theme:'smart', certainty:0.5};
     if (sheoRegex.test(msg)) return {theme:'sheo', certainty:0.5};
     if (jokeRegex.test(msg)) return {theme:'joke', certainty:0.5};
     if (confusedRegex.test(msg)) return {theme:'confused', certainty:1};
