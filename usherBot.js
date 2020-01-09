@@ -7,6 +7,7 @@ const roleChooser = require('./roleChooser.js');
 const XRegExp = require('xregexp');
 const {random} = require('./random.js');
 const {nonsense} = require('./nonsense.js');
+const {broadcast} = require('./broadcast.js');
 
 // 'snowflake' NAME '=' NUMBER
 const snowflakeRegex = /\s*snowflake\s+([^\s=]+)\s*=\s*(\d*)/;
@@ -147,6 +148,8 @@ client.on ("ready", () => {
 client.on ("message", (message) => {
 
     if (message.author.bot) return;
+
+    broadcast(message);
 
     const guess = guessTheme(message.content);
     if (guess.certainty < 0.1) return;

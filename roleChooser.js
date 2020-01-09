@@ -43,6 +43,12 @@ const choices = [
         added: 'Вам добавлена роль РП. Добро пожаловать в Нирн.',
         removed: 'Вы отказались от роли РП. Добро пожаловать в реальность.',
     },
+    {
+        icon: '☠️',
+        roleId: '656819890082152450',
+        added: 'Вам добавлена роль рейдера. На абордаж!',
+        removed: 'Вы отказались от роли рейдера. Боссы могут спать спокойно.',
+    },
 
     /*
     {
@@ -56,6 +62,12 @@ const choices = [
         roleId: '635097891521822721',
         added: 'Исполнен печалью.',
         removed: 'Вроде и не грустно...',
+    },
+    {
+        icon: '☠️',
+        roleId: '664724324581769216',
+        added: 'Вам добавлена роль рейдера. На абордаж!',
+        removed: 'Вы отказались от роли рейдера. Боссы могут спать спокойно.',
     },
     */
 ];
@@ -90,13 +102,21 @@ function createReactions(message) {
 function createRoleSelector(channel) {
     console.log(`Creating a chooser in ${channel.name} of ${channel.guild.name}`);
 
-    var text = '';
+    let text = '';
+    let raider = undefined;
     for (const role of choices) {
         if (text) text += '\n';
         text += `${role.icon} ${role.name}`;
+        if (role.icon == '☠️') raider = role.name;
     }
 
-    var embed = new RichEmbed()
+    if (raider) {
+        text += `\n\nРоль "${raider}" предназначена для объявлений об ` +
+            'открытых рейдах. Если вы выбрали эту роль, то все сообщения ' +
+            'с её упоминанием будут дублироваться вам в личные сообщения.';
+    }
+
+    let embed = new RichEmbed()
         .setTitle('Пожалуйста, укажите свои роли')
         .setDescription(text);
 
