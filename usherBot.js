@@ -92,9 +92,10 @@ const prefix = `^эй${notAWord}`;
 
 const greetSureRegex = XRegExp(`${prefix},\\s+привет,\\s+бот`, 'i');
 const guardSureRegex = XRegExp(`${prefix},\\s+пушистик!`, 'i');
-const smartSureRegex = XRegExp(`${prefix}.*(?:${notAWord}ум(?:а|у|е|ом)?${notAWord}|${notAWord}(?:за)?умн|мысе?л)`, 'i');
+const smartSureRegex = XRegExp(`${prefix}.*(?:${notAWord}ум(?:а|у|е|ом)?${notAWord}|${notAWord}(?:за)?умн|мысе?л|дум)`, 'i');
 const stupidSureRegex = XRegExp(`${prefix}.*(?:глуп|дур|ерунд|чушь|туп|бред|дуб|болван)`, 'i');
-const confusedRegex = XRegExp(prefix, 'i');
+
+const botRegex = XRegExp(prefix, 'i');
 
 const guardRegex = XRegExp(`${notAWord}(?:страж|полиц)`, 'i');
 const sheoRegex = XRegExp('сыр|шео', 'i');
@@ -111,11 +112,15 @@ function guessTheme(msg) {
     if (guardSureRegex.test(msg)) return {theme:'guard', certainty:1};
     if (stupidSureRegex.test(msg)) return {theme:'nonsense', certainty:1};
     if (smartSureRegex.test(msg)) return {theme:'smart', certainty:1};
-    if (guardRegex.test(msg)) return {theme:'guard', certainty:0.5};
-    if (sheoRegex.test(msg)) return {theme:'sheo', certainty:0.5};
-    if (jokeRegex.test(msg)) return {theme:'joke', certainty:0.5};
-    if (confusedRegex.test(msg)) return {theme:'confused', certainty:1};
-    return {certainty:0};
+
+    // Whether the bot was mentioned explicitly.
+    const askBot = botRegex.test(msg);
+
+    if (guardRegex.test(msg)) return {theme:'guard', certainty:askBot?1:0.5};
+    if (sheoRegex.test(msg)) return {theme:'sheo', certainty:askBot?1:0.5};
+    if (jokeRegex.test(msg)) return {theme:'joke', certainty:askBot?1:0.5};
+
+    return {theme:'confused', certainty:askBot?1:0};
 }
 
 function randomMessage(messages) {
@@ -152,7 +157,7 @@ client.on ("message", (message) => {
     broadcast(message);
 
     const guess = guessTheme(message.content);
-    if (guess.certainty < 0.1) return;
+    if (guess.certainty < 0.9) return;
 
     if (guess.theme == 'greet') {
         message.reply ('привет!');
