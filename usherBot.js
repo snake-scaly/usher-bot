@@ -193,4 +193,20 @@ client.on ("guildMemberRemove", member => {
     //
 });
 
+client.on ("warn", warn => {
+    console.error('Warning:', warn);
+});
+
+client.on ("error", error => {
+    console.error('Error:', error);
+});
+
+client.on ("invalidated", () => {
+    console.log('Shutting down');
+});
+
+client.on ("shardError", (error, shard) => {
+    console.error('Error: Shard', shard, ':', error);
+});
+
 client.login(token);
