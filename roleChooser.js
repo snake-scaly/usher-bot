@@ -1,216 +1,312 @@
+/*
+Discord Role Chooser
+
+Copyright (c) 2019 Sergey "SnakE" Gromov
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+/*
+Role chooser allows members of your Discord server to choose their roles
+from a provided list. The roles are chosen using reactions to a special
+message created by the chooser. Some features include:
+
+- Custom message titles and footnotes
+- Protection against adding unrelated reactions to the message. Any
+  unrelated reactions are automatically removed
+
+There can be only one chooser message per channel.
+
+Module API:
+
+function Chooser(client)
+
+    Create an instance of the chooser.
+
+    client - Discord client instance.
+
+    Returns a Chooser instance.
+
+Chooser API:
+
+function setTitle(title)
+
+    Set the message title.
+
+    title - the title string.
+
+function addChoice(icon, role, addMsg, removeMsg)
+
+    Add a role choice.
+
+    icon      - name of the emoji to use for this choice. The name must be
+                either a single Unicode emoji character or the emoji code.
+                You can determine this name by messaging a backslash
+                followed by the emoji in Discord and then copying the result
+                from the message.  E.g. "\:heart:" results in a single
+                Unicode emoji "❤️", while a custom emoji might produce
+                something like "<:cat:706936837247336568>".
+    role      - an instance of discord.js Role object.
+    addMsg    - a personal message which a user receives when they pick this
+                role.
+    removeMsg - a personal message which a user receives when they decline
+                this role.
+
+function addNote(note)
+
+    Add a footnote to the chooser message. Multiple footnotes are separated
+    by blank lines.
+
+    note - a string to add as a note.
+
+function enable(channel)
+
+    Enable the chooser. Calling this creates the chooser message and starts
+    listening for reactions. If the channel already contains a chooser
+    message from a previous run this attaches to the existing message
+    instead.
+
+    Caveat: enable() attaches to an existing message even if it was created
+    with a different configuration of roles/messages. It is recommended to
+    delete the old chooser message when configuration changes.
+
+    channel - an instance of discord.js TextChannel object.
+*/
+
 const {MessageEmbed} = require('discord.js');
 
-const choices = [
-    {
-        icon: '🛡',
-        roleId: '603881801433219073',
-        added: 'Вам добавлена роль танка. Стойте и терпите.',
-        removed: 'Вы отказались от роли танка. Чтож, никто не любит, когда его бъют.',
-    },
-    {
-        icon: '🏹',
-        roleId: '603882245400428554',
-        added: 'Вам добавлена роль бойца. Извольте драться.',
-        removed: 'Вы отказались от роли бойца. Драться — не чай пить.',
-    },
-    {
-        icon: '💉',
-        roleId: '603881325052690432',
-        added: 'Вам добавлена роль целителя. Не забудте про баффы.',
-        removed: 'Вы отказались от роли целителя. Личное кладбище из бывших пациентов не помещается на заднем дворе?',
-    },
-    {
-        icon: '⚒',
-        roleId: '605017948079521803',
-        added: 'Вам добавлена роль крафтера. Мастерские открыты.',
-        removed: 'Вы отказались от роли крафтера. Ну и правильно. Никто не ценит талант.',
-    },
-    {
-        icon: '⚔',
-        roleId: '607805418189750272',
-        added: 'Вам добавлена роль ПВП. Пора на войну.',
-        removed: 'Вы отказались от роли ПВП. Война проиграна.',
-    },
-    {
-        icon: '🗡',
-        roleId: '635143633150148611',
-        added: 'Вам добавлена роль ПВЕ. Пора истреблять монстров.',
-        removed: 'Вы отказались от роли ПВЕ. Теперь чудовища поработят мир!',
-    },
-    {
-        icon: '👥',
-        roleId: '607805285280645132',
-        added: 'Вам добавлена роль РП. Добро пожаловать в Нирн.',
-        removed: 'Вы отказались от роли РП. Добро пожаловать в реальность.',
-    },
-    {
-        icon: '☠️',
-        roleId: '656819890082152450',
-        added: 'Вам добавлена роль рейдера. На абордаж!',
-        removed: 'Вы отказались от роли рейдера. Боссы могут спать спокойно.',
-    },
+function Chooser() {
+    let _client;
+    const _choices = [];
+    let _title = null;
+    let _notes = "";
+    let _chooserMessage;
 
-    /*
-    {
-        icon: '😂',
-        roleId: '635097767898906634',
-        added: 'Шарики, как много шариков!',
-        removed: 'Какие такие шарики?',
-    },
-    {
-        icon: '😢',
-        roleId: '635097891521822721',
-        added: 'Исполнен печалью.',
-        removed: 'Вроде и не грустно...',
-    },
-    {
-        icon: '☠️',
-        roleId: '664724324581769216',
-        added: 'Вам добавлена роль рейдера. На абордаж!',
-        removed: 'Вы отказались от роли рейдера. Боссы могут спать спокойно.',
-    },
-    */
-];
-
-const bootstrapList = [
-    {guild: '409658506434838529', channel: '627434071961632778'}, // Merry Madness
-    //{guild: '634791890251677717', channel: '635184992711999489'}, // Serpentary
-];
-
-var botClient;
-
-function populateRoles(guild) {
-    for (const c of choices) {
-        var role = guild.roles.resolve(c.roleId);
-        if (role) {
-            c['role'] = role;
-            c['name'] = role.name;
+    function createReactions(message) {
+        for (const role of _choices) {
+            message.react(role.icon)
+                .catch(reason => {
+                    console.error(
+                        'Failed to create reaction', role.icon,
+                        'on message', message,
+                        ':', reason);
+                });
         }
     }
-}
 
-function findChoiceByIcon(icon) {
-    for (const c of choices) {
-        if (c.icon == icon) return c;
-    }
-}
+    function createRoleSelector(channel) {
+        console.log(`Creating a chooser in ${channel.name} of ${channel.guild.name}`);
 
-function createReactions(message) {
-    for (const role of choices) message.react(role.icon);
-}
-
-function createRoleSelector(channel) {
-    console.log(`Creating a chooser in ${channel.name} of ${channel.guild.name}`);
-
-    let text = '';
-    let raider = undefined;
-    for (const role of choices) {
-        if (text) text += '\n';
-        text += `${role.icon} ${role.name}`;
-        if (role.icon == '☠️') raider = role.name;
-    }
-
-    if (raider) {
-        text += `\n\nРоль "${raider}" предназначена для объявлений об ` +
-            'открытых рейдах. Если вы выбрали эту роль, то все сообщения ' +
-            'с её упоминанием будут дублироваться вам в личные сообщения.';
-    }
-
-    let embed = new MessageEmbed()
-        .setTitle('Пожалуйста, укажите свои роли')
-        .setDescription(text);
-
-    channel.send(embed)
-        .then(createReactions);
-}
-
-function isChooserMessage(message) {
-    return message.author == botClient.user && message.embeds.length != 0;
-}
-
-function prefetchChooserMessages(messages) {
-    for (const entry of messages) {
-        if (isChooserMessage(entry[1])) {
-            return true;
+        let text = '';
+        for (const choice of _choices) {
+            if (text) text += '\n';
+            text += `${choice.icon} ${choice.role.name}`;
         }
+
+        const embed = new MessageEmbed()
+            .setDescription(text + _notes);
+        if (_title) {
+            embed.setTitle(_title);
+        }
+
+        channel.send(embed)
+            .then(message => {
+                _chooserMessage = message;
+                createReactions(message);
+            })
+            .catch(reason => {
+                console.error('Failed to create the chooser message:', reason);
+                detach();
+            });
     }
-    return false;
-}
 
-function reactionAdd(reaction, user) {
-    if (user.bot) return;
-    if (!isChooserMessage(reaction.message)) return;
+    function reactionAdd(reaction, user) {
+        if (reaction.message != _chooserMessage) return;
 
-    var choice = findChoiceByIcon(reaction.emoji.name);
+        var choice = _choices.find(c => c.icon == reaction.emoji.name);
 
-    // Remove any unrelated reactions.
-    if (!choice) {
-        reaction.remove(user);
-        return;
-    }
+        // Remove any unrelated reactions.
+        if (!choice) {
+            reaction.remove(user)
+                .catch(reason => {
+                    console.error(
+                        'Failed to remove unrelated reaction', reaction,
+                        'added by user', user,
+                        ':', reason);
+                });
+            return;
+        }
 
-    reaction.message.guild.members.fetch(user)
-        .then(member => {
-            if (member) {
-                if (!member.roles.cache.has(choice.role.id)) {
-                    member.roles.add(choice.role);
-                    member.send(choice.added);
+        reaction.message.guild.members.fetch(user)
+            .then(member => {
+                if (member) {
+                    if (!member.roles.cache.has(choice.role.id)) {
+                        member.roles.add(choice.role)
+                            .catch(reason => {
+                                console.error(
+                                    'Failed to add role', choice.role,
+                                    'to member', member,
+                                    ':', reason);
+                            });
+                        member.send(choice.addMsg)
+                            .catch(reason => {
+                                console.error(
+                                    'Failed to send message', choice.addMsg,
+                                    'to member', member,
+                                    ':', reason);
+                            });
+                    }
+                } else {
+                    reaction.remove(user)
+                        .catch(reason => {
+                            console.error(
+                                'Failed to remove reaction', reaction,
+                                'added by non-member', user,
+                                ':', reason);
+                        });
                 }
-            } else {
-                reaction.remove(user);
+            })
+            .catch(reason => {
+                console.error('Failed to fetch', user, ':', reason);
+            });
+    }
+
+    function reactionRemove(reaction, user) {
+        if (reaction.message != _chooserMessage) return;
+
+        var choice = _choices.find(c => c.icon == reaction.emoji.name);
+        if (!choice) return;
+
+        reaction.message.guild.members.fetch(user)
+            .then(member => {
+                if (member && member.roles.cache.has(choice.role.id)) {
+                    member.roles.remove(choice.role)
+                        .catch(reason => {
+                            console.error(
+                                'Failed to remove role', choice.role,
+                                'from member', member,
+                                ':', reason);
+                        });
+                    member.send(choice.removeMsg)
+                        .catch(reason => {
+                            console.error(
+                                'Failed to send message', choice.removeMsg,
+                                'to member', member,
+                                ':', reason);
+                        });
+                }
+            })
+            .catch(reason => {
+                console.error('Failed to fetch', user, ':', reason);
+            });
+    }
+
+    function reactionRemoveAll(message) {
+        if (message != _chooserMessage) return;
+        createReactions(message);
+    }
+
+    function setTitle(title) {
+        if (_client) {
+            throw 'Role chooser already enabled';
+        }
+        _title = title;
+    }
+
+    function addChoice(icon, role, addMsg, removeMsg) {
+        if (_client) {
+            throw 'Role chooser already enabled';
+        }
+        if (_choices.length && _choices[0].role.guild != role.guild) {
+            throw 'All roles must be from the same guild';
+        }
+        for (const choice of _choices) {
+            if (choice.role == role) {
+                throw 'Roles must not repeat';
             }
-        });
-}
-
-function reactionRemove(reaction, user) {
-    if (user.bot) return;
-    if (!isChooserMessage(reaction.message)) return;
-
-    var choice = findChoiceByIcon(reaction.emoji.name);
-    if (!choice) return;
-
-    reaction.message.guild.members.fetch(user)
-        .then(member => {
-            if (member && member.roles.cache.has(choice.role.id)) {
-                member.roles.remove(choice.role);
-                member.send(choice.removed);
+            if (choice.icon == icon) {
+                throw 'Icons must not repeat';
             }
-        });
-}
+        }
+        _choices.push({icon: icon, role: role, addMsg: addMsg, removeMsg: removeMsg});
+    }
 
-function reactionRemoveAll(message) {
-    if (user.bot) return;
-    if (!isChooserMessage(reaction.message)) return;
-    createReactions(message);
-}
+    function addNote(note) {
+        if (_client) {
+            throw 'Role chooser already enabled';
+        }
+        _notes += '\n\n' + note;
+    }
 
-function bootstrap(client) {
-    botClient = client;
+    function attach(client) {
+        if (_client) {
+            throw "Already attached";
+        }
+        _client = client;
+        _client.on('messageReactionAdd', reactionAdd);
+        _client.on('messageReactionRemove', reactionRemove);
+        _client.on('messageReactionRemoveAll', reactionRemoveAll);
+    }
 
-    botClient.on('messageReactionAdd', reactionAdd);
-    botClient.on('messageReactionRemove', reactionRemove);
-    botClient.on('messageReactionRemoveAll', reactionRemoveAll);
+    function detach() {
+        if (_client) return;
+        _client.off('messageReactionAdd', reactionAdd);
+        _client.off('messageReactionRemove', reactionRemove);
+        _client.off('messageReactionRemoveAll', reactionRemoveAll);
+        _client = null;
+    }
 
-    for (const entry of bootstrapList) {
-        var guild = client.guilds.resolve(entry.guild);
-        if (!guild) {
-            console.error(`Guild not found: ${entry.guild}`);
-            return;
+    function enable(channel) {
+        if (_client) {
+            throw 'Role chooser already enabled';
+        }
+        if (!_choices.length) {
+            throw 'The choice list is empty';
+        }
+        if (_choices[0].role.guild != channel.guild) {
+            throw 'Channel and roles must be from the same guild';
         }
 
-        var channel = guild.channels.resolve(entry.channel);
-        if (!channel) {
-            console.error(`Channel ${entry.channel} not found in guild ${guild.name}`);
-            return;
-        }
-
-        populateRoles(guild);
+        attach(channel.client);
 
         channel.messages.fetch()
             .then(messages => {
-                if (!prefetchChooserMessages(messages)) createRoleSelector(channel);
+                _chooserMessage = messages.find(msg => msg.author == _client.user && msg.embeds.length);
+                if (!_chooserMessage) {
+                    createRoleSelector(channel);
+                }
+            })
+            .catch(reason => {
+                console.error('Error fetching messages:', reason);
+                createRoleSelector(channel);
             });
     }
+
+    return {
+        setTitle: setTitle,
+        addChoice: addChoice,
+        addNote: addNote,
+        enable: enable,
+    };
 }
 
-module.exports = {bootstrap: bootstrap};
+module.exports = {
+    Chooser: Chooser,
+};
