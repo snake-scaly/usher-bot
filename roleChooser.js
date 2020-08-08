@@ -1,4 +1,4 @@
-const {RichEmbed} = require('discord.js');
+const {MessageEmbed} = require('discord.js');
 
 const choices = [
     {
@@ -81,7 +81,7 @@ var botClient;
 
 function populateRoles(guild) {
     for (const c of choices) {
-        var role = guild.roles.get(c.roleId);
+        var role = guild.roles.resolve(c.roleId);
         if (role) {
             c['role'] = role;
             c['name'] = role.name;
@@ -116,7 +116,7 @@ function createRoleSelector(channel) {
             'с её упоминанием будут дублироваться вам в личные сообщения.';
     }
 
-    let embed = new RichEmbed()
+    let embed = new MessageEmbed()
         .setTitle('Пожалуйста, укажите свои роли')
         .setDescription(text);
 
@@ -149,11 +149,11 @@ function reactionAdd(reaction, user) {
         return;
     }
 
-    reaction.message.guild.fetchMember(user)
+    reaction.message.guild.members.fetch(user)
         .then(member => {
             if (member) {
-                if (!member.roles.has(choice.role.id)) {
-                    member.addRole(choice.role);
+                if (!member.roles.cache.has(choice.role.id)) {
+                    member.roles.add(choice.role);
                     member.send(choice.added);
                 }
             } else {
@@ -169,10 +169,10 @@ function reactionRemove(reaction, user) {
     var choice = findChoiceByIcon(reaction.emoji.name);
     if (!choice) return;
 
-    reaction.message.guild.fetchMember(user)
+    reaction.message.guild.members.fetch(user)
         .then(member => {
-            if (member && member.roles.has(choice.role.id)) {
-                member.removeRole(choice.role);
+            if (member && member.roles.cache.has(choice.role.id)) {
+                member.roles.remove(choice.role);
                 member.send(choice.removed);
             }
         });
@@ -192,13 +192,13 @@ function bootstrap(client) {
     botClient.on('messageReactionRemoveAll', reactionRemoveAll);
 
     for (const entry of bootstrapList) {
-        var guild = client.guilds.get(entry.guild);
+        var guild = client.guilds.resolve(entry.guild);
         if (!guild) {
             console.error(`Guild not found: ${entry.guild}`);
             return;
         }
 
-        var channel = guild.channels.get(entry.channel);
+        var channel = guild.channels.resolve(entry.channel);
         if (!channel) {
             console.error(`Channel ${entry.channel} not found in guild ${guild.name}`);
             return;
@@ -206,7 +206,7 @@ function bootstrap(client) {
 
         populateRoles(guild);
 
-        channel.fetchMessages()
+        channel.messages.fetch()
             .then(messages => {
                 if (!prefetchChooserMessages(messages)) createRoleSelector(channel);
             });

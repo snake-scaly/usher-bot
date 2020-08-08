@@ -144,7 +144,7 @@ var client = new discord.Client();
 
 const token = process.env.BOT_TOKEN;
 
-client.on ("ready", () => {
+client.once ("ready", () => {
     client.user.setActivity ("Merry Madness");
     roleChooser.bootstrap(client);
     console.log("ready!");
@@ -182,14 +182,14 @@ client.on ("message", (message) => {
 
 client.on ("guildMemberAdd", member => {
 
-    var role = member.guild.roles.find ("name", "Прохожие");
-    member.addRole (role);
-    member.guild.channels.get('627434071961632778').send('**' + member.user.username + '**, привет! <#603337113584402432>, чтобы узнать о нас больше и о том, что тебя ждёт!')
+    var role = member.guild.roles.cache.find(role => role.name === "Прохожие");
+    member.roles.add(role);
+    member.guild.channels.resolve('627434071961632778').send('**' + member.user.username + '**, привет! <#603337113584402432>, чтобы узнать о нас больше и о том, что тебя ждёт!')
 
 })
 
 client.on ("guildMemberRemove", member => {
-    member.guild.channels.get('409658506967384065').send('**' + member.user.username + '** покинул сервер')
+    member.guild.channels.resolve('409658506967384065').send('**' + member.user.username + '** покинул сервер')
     //
 });
 
