@@ -5,7 +5,13 @@ const broadcastRoles = [
 
 function doBroadcast(role, message) {
     for (const [snowflake, member] of role.members) {
-        member.send(message.cleanContent).catch(function(error) { console.error(error); });
+        member.send(message.cleanContent)
+            .catch(reason => {
+                console.error(
+                    'Failed to send message', message.cleanContent,
+                    'to member', member,
+                    ':', reason);
+            });
     }
 }
 
