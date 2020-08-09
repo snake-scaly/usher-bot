@@ -139,6 +139,7 @@ function Chooser() {
 
     function reactionAdd(reaction, user) {
         if (reaction.message != _chooserMessage) return;
+        if (user == _client.user) return;
 
         var choice = _choices.find(c => c.icon == reaction.emoji.name);
 
@@ -190,6 +191,7 @@ function Chooser() {
 
     function reactionRemove(reaction, user) {
         if (reaction.message != _chooserMessage) return;
+        if (user == _client.user) return;
 
         var choice = _choices.find(c => c.icon == reaction.emoji.name);
         if (!choice) return;
