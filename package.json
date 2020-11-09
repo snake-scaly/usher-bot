@@ -9,8 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "discord.js": "12.x",
+    "discord.js": "^12.4.1",
     "dotenv": "8.x",
-    "xregexp": "4.x"
+    "xregexp": "^4.4.0"
   }
 }
