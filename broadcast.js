@@ -7,6 +7,10 @@ function doBroadcast(role, message) {
     for (const [snowflake, member] of role.members) {
         member.send(message.cleanContent)
             .catch(reason => {
+                if (reason.code == 50007 && reason.httpStatus == 403) {
+                    // Ignore users who disabled direct messages.
+                    return;
+                }
                 console.error(
                     'Failed to send message', message.cleanContent,
                     'to member', member,
