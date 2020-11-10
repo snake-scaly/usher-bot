@@ -141,7 +141,9 @@ function setupMerryMadnessRoles(client) {
         'открытых рейдах. Если вы выбрали эту роль, то все сообщения ' +
         'с её упоминанием будут дублироваться вам в личные сообщения.');
 
-    chooser.enable(channel);
+    chooser
+        .enable(channel)
+        .catch(reason => console.error('Error: setupMerryMadnessRoles:', reason));
 }
 
 function setupSerpentaryRoles(client) {
@@ -170,7 +172,9 @@ function setupSerpentaryRoles(client) {
 
     chooser.addNote(`${raider.name} -- THIS IS SPARTAAAAAA!!!`);
 
-    chooser.enable(channel);
+    chooser
+        .enable(channel)
+        .catch(reason => console.error('Error: setupSerpentaryRoles:', reason));
 }
 
 const notAWord = '(?:\\P{L}|^|$)';
@@ -226,7 +230,7 @@ const monday = (function() {
 
 const monday_words = monday.split(XRegExp('(?<=\\P{L})(?=\\p{L})|(?<=\\p{L})(?=\\P{L})'));
 
-var client = new discord.Client();
+const client = new discord.Client({partials: ['MESSAGE', 'REACTION', 'USER']});
 
 const token = process.env.BOT_TOKEN;
 

@@ -88,6 +88,8 @@ function enable(channel)
     delete the old chooser message when configuration changes.
 
     channel - an instance of discord.js TextChannel object.
+
+    Returns a Promise of completion.
 */
 
 const {MessageEmbed} = require('discord.js');
@@ -97,132 +99,99 @@ function Chooser() {
     const _choices = [];
     let _title = null;
     let _notes = "";
-    let _chooserMessage;
+    let _chooserMessageId;
 
-    function createReactions(message) {
-        for (const role of _choices) {
-            message.react(role.icon)
-                .catch(reason => {
-                    console.error(
-                        'Failed to create reaction', role.icon,
-                        'on message', message,
-                        ':', reason);
-                });
+    async function createReactions(message) {
+        if (message.partial) {
+            message = await message.fetch();
         }
+        await Promise.all(_choices.map(role => message.react(role.icon)));
     }
 
-    function createRoleSelector(channel) {
+    async function createRoleSelector(channel) {
         console.log(`Creating a chooser in ${channel.name} of ${channel.guild.name}`);
 
         let text = '';
         for (const choice of _choices) {
-            if (text) text += '\n';
+            if (text) {
+                text += '\n';
+            }
             text += `${choice.icon} ${choice.role.name}`;
         }
 
-        const embed = new MessageEmbed()
-            .setDescription(text + _notes);
+        const embed = new MessageEmbed();
+        embed.setDescription(text + _notes);
         if (_title) {
             embed.setTitle(_title);
         }
 
-        channel.send(embed)
-            .then(message => {
-                _chooserMessage = message;
-                createReactions(message);
-            })
-            .catch(reason => {
-                console.error('Failed to create the chooser message:', reason);
-                detach();
-            });
+        try {
+            const message = await channel.send(embed);
+            await createReactions(message);
+            _chooserMessageId = message.id;
+        } catch (e) {
+            detach();
+            throw e;
+        }
     }
 
-    function reactionAdd(reaction, user) {
-        if (reaction.message != _chooserMessage) return;
-        if (user == _client.user) return;
+    async function reactionAdd(reaction, user) {
+        if (reaction.message.id != _chooserMessageId) return;
+        if (user.id == _client.user.id) return;
+        if (reaction.partial) reaction = await reaction.fetch();
 
-        var choice = _choices.find(c => c.icon == reaction.emoji.name);
+        const choice = _choices.find(c => c.icon == reaction.emoji.name);
 
         // Remove any unrelated reactions.
         if (!choice) {
-            reaction.remove(user)
-                .catch(reason => {
-                    console.error(
-                        'Failed to remove unrelated reaction', reaction,
-                        'added by user', user,
-                        ':', reason);
-                });
+            await reaction.remove(user.id);
             return;
         }
 
-        reaction.message.guild.members.fetch(user)
-            .then(member => {
-                if (member) {
-                    if (!member.roles.cache.has(choice.role.id)) {
-                        member.roles.add(choice.role)
-                            .catch(reason => {
-                                console.error(
-                                    'Failed to add role', choice.role,
-                                    'to member', member,
-                                    ':', reason);
-                            });
-                        member.send(choice.addMsg)
-                            .catch(reason => {
-                                console.error(
-                                    'Failed to send message', choice.addMsg,
-                                    'to member', member,
-                                    ':', reason);
-                            });
-                    }
-                } else {
-                    reaction.remove(user)
-                        .catch(reason => {
-                            console.error(
-                                'Failed to remove reaction', reaction,
-                                'added by non-member', user,
-                                ':', reason);
-                        });
-                }
-            })
-            .catch(reason => {
-                console.error('Failed to fetch', user, ':', reason);
-            });
+        const member = await reaction.message.guild.members.fetch(user.id);
+
+        if (member) {
+            if (!member.roles.cache.has(choice.role.id)) {
+                await Promise.all([
+                    member.roles.add(choice.role),
+                    member.send(choice.addMsg)]);
+            }
+        } else {
+            await reaction.remove(user);
+        }
     }
 
-    function reactionRemove(reaction, user) {
-        if (reaction.message != _chooserMessage) return;
-        if (user == _client.user) return;
+    function reactionAddHandler(reaction, user) {
+        reactionAdd(reaction, user)
+            .catch(reason => console.error('Error: reactionAddHandler:', reason, reaction, user));
+    }
 
-        var choice = _choices.find(c => c.icon == reaction.emoji.name);
+    async function reactionRemove(reaction, user) {
+        if (reaction.message.id != _chooserMessageId) return;
+        if (user.id == _client.user.id) return;
+        if (reaction.partial) reaction = await reaction.fetch();
+
+        const choice = _choices.find(c => c.icon == reaction.emoji.name);
         if (!choice) return;
 
-        reaction.message.guild.members.fetch(user)
-            .then(member => {
-                if (member && member.roles.cache.has(choice.role.id)) {
-                    member.roles.remove(choice.role)
-                        .catch(reason => {
-                            console.error(
-                                'Failed to remove role', choice.role,
-                                'from member', member,
-                                ':', reason);
-                        });
-                    member.send(choice.removeMsg)
-                        .catch(reason => {
-                            console.error(
-                                'Failed to send message', choice.removeMsg,
-                                'to member', member,
-                                ':', reason);
-                        });
-                }
-            })
-            .catch(reason => {
-                console.error('Failed to fetch', user, ':', reason);
-            });
+        const member = await reaction.message.guild.members.fetch(user.id);
+
+        if (member && member.roles.cache.has(choice.role.id)) {
+            await Promise.all([
+                member.roles.remove(choice.role),
+                member.send(choice.removeMsg)]);
+        }
     }
 
-    function reactionRemoveAll(message) {
-        if (message != _chooserMessage) return;
-        createReactions(message);
+    function reactionRemoveHandler(reaction, user) {
+        reactionRemove(reaction, user)
+            .catch(reason => console.error('Error: reactionRemoveHandler:', reason, reaction, user));
+    }
+
+    function reactionRemoveAllHandler(message) {
+        if (message.id != _chooserMessageId) return;
+        createReactions(message)
+            .catch(reason => console.error('Error: reactionRemoveAllHandler:', reason, message));
     }
 
     function setTitle(title) {
@@ -262,20 +231,20 @@ function Chooser() {
             throw "Already attached";
         }
         _client = client;
-        _client.on('messageReactionAdd', reactionAdd);
-        _client.on('messageReactionRemove', reactionRemove);
-        _client.on('messageReactionRemoveAll', reactionRemoveAll);
+        _client.on('messageReactionAdd', reactionAddHandler);
+        _client.on('messageReactionRemove', reactionRemoveHandler);
+        _client.on('messageReactionRemoveAll', reactionRemoveAllHandler);
     }
 
     function detach() {
         if (_client) return;
-        _client.off('messageReactionAdd', reactionAdd);
-        _client.off('messageReactionRemove', reactionRemove);
-        _client.off('messageReactionRemoveAll', reactionRemoveAll);
+        _client.off('messageReactionAdd', reactionAddHandler);
+        _client.off('messageReactionRemove', reactionRemoveHandler);
+        _client.off('messageReactionRemoveAll', reactionRemoveAllHandler);
         _client = null;
     }
 
-    function enable(channel) {
+    async function enable(channel) {
         if (_client) {
             throw 'Role chooser already enabled';
         }
@@ -288,17 +257,13 @@ function Chooser() {
 
         attach(channel.client);
 
-        channel.messages.fetch()
-            .then(messages => {
-                _chooserMessage = messages.find(msg => msg.author == _client.user && msg.embeds.length);
-                if (!_chooserMessage) {
-                    createRoleSelector(channel);
-                }
-            })
-            .catch(reason => {
-                console.error('Error fetching messages:', reason);
-                createRoleSelector(channel);
-            });
+        const messages = await channel.messages.fetch();
+        const chooserMessage = messages.find(msg => msg.author == _client.user && msg.embeds.length);
+        if (chooserMessage) {
+            _chooserMessageId = chooserMessage.id;
+        } else {
+            await createRoleSelector(channel);
+        }
     }
 
     return {
