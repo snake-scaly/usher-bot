@@ -146,37 +146,6 @@ function setupMerryMadnessRoles(client) {
         .catch(reason => console.error('Error: setupMerryMadnessRoles:', reason));
 }
 
-function setupSerpentaryRoles(client) {
-    const guild = client.guilds.resolve('634791890251677717');
-    const channel = guild.channels.resolve('635184992711999489');
-    const raider = guild.roles.resolve('664724324581769216');
-
-    const chooser = roleChooser.Chooser(client);
-    chooser.setTitle('Pick Your Poison');
-
-    chooser.addChoice(
-        '😂',
-        guild.roles.resolve('635097767898906634'),
-        'Шарики, как много шариков!',
-        'Какие такие шарики?');
-    chooser.addChoice(
-        '😢',
-        guild.roles.resolve('635097891521822721'),
-        'Исполнен печалью.',
-        'Вроде и не грустно...');
-    chooser.addChoice(
-        '☠️',
-        raider,
-        'Вам добавлена роль рейдера. На абордаж!',
-        'Вы отказались от роли рейдера. Боссы могут спать спокойно.');
-
-    chooser.addNote(`${raider.name} -- THIS IS SPARTAAAAAA!!!`);
-
-    chooser
-        .enable(channel)
-        .catch(reason => console.error('Error: setupSerpentaryRoles:', reason));
-}
-
 const notAWord = '(?:\\P{L}|^|$)';
 const prefix = `^эй${notAWord}`;
 
@@ -237,7 +206,6 @@ const token = process.env.BOT_TOKEN;
 client.once ("ready", () => {
     client.user.setActivity("Merry Madness");
     setupMerryMadnessRoles(client);
-    setupSerpentaryRoles(client);
     console.log("ready!");
 });
 
